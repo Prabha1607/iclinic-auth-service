@@ -14,6 +14,7 @@ from src.core.services.user import (
     get_providers,
     get_providers_by_type_service,
     get_roles,
+    get_user_by_id_service,
     update_user_service,
 )
 from src.schemas.user import (
@@ -21,6 +22,7 @@ from src.schemas.user import (
     ProviderCreate,
     ProviderFullResponse,
     UserCreate,
+    UserResponse,
     UserUpdate,
 )
 
@@ -91,6 +93,11 @@ async def get_providers_by_type(
 async def get_patient_by_id(id: int, db: AsyncSession = Depends(get_db)):
     patient = await get_patient_by_id_service(db=db, id=id, is_active=True)
     return patient
+
+@router.get("/{id}", response_model=UserResponse)
+async def get_user_by_id(id: int, db: AsyncSession = Depends(get_db)):
+    user = await get_user_by_id_service(db=db, id=id, is_active=True)
+    return user
 
 
 @router.post("/patients/create", response_model=PatientFullResponse)

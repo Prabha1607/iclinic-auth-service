@@ -88,7 +88,6 @@ async def login_user(
 
         await insert_refresh_token(db, refresh_token_id)
 
-
         response.set_cookie(
             key="access_token",
             value=access_token,

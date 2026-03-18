@@ -19,3 +19,4 @@ def add_cors_middleware(app):
         allow_headers=["*"],
         expose_headers=["x-transcript", "x-response-text"],
     )
+    
