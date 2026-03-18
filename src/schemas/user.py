@@ -13,6 +13,10 @@ class PatientProfileCreate(BaseModel):
     model_config = {"from_attributes": True}
 
 
+from pydantic import BaseModel, Field, EmailStr, field_validator
+import re
+from typing import Optional
+
 class UserCreate(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
@@ -24,10 +28,11 @@ class UserCreate(BaseModel):
         ...,
         description="Password with at least 6 chars, one uppercase, one number, one special symbol.",
     )
-    patient_profile: PatientProfileCreate | None = None  # ← add this
+    patient_profile: Optional["PatientProfileCreate"] = None
 
     @field_validator("password")
-    def validate_password(self, v):
+    @classmethod
+    def validate_password(cls, v):
         if len(v) < 6:
             raise ValueError("Password must be at least 6 characters long.")
         if not re.search(r"[A-Z]", v):
@@ -46,7 +51,8 @@ class UserLogin(BaseModel):
     password: str
 
     @field_validator("identifier")
-    def validate_identifier(self, v):
+    @classmethod
+    def validate_identifier(cls, v):
         email_pattern = r"^[^@]+@[^@]+\.[^@]+$"
         phone_pattern = r"^\+?\d{7,15}$"
 
@@ -99,6 +105,7 @@ class PatientFullResponse(BaseModel):
     phone_no: str
     email: EmailStr
 
+
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -138,7 +145,8 @@ class UserUpdate(BaseModel):
     patient_profile: PatientProfileUpdate | None = None  # ← key addition
 
     @field_validator("password")
-    def validate_password(self, v):
+    @classmethod
+    def validate_password(cls, v):
         if v is None:
             return v
         if len(v) < 6:
@@ -162,6 +170,8 @@ class ProviderFullResponse(BaseModel):
     country_code: str
     phone_no: str
     is_active: bool
+    created_at: datetime         
+    updated_at: datetime          
     provider_profile: ProviderProfileResponse | None
 
     model_config = ConfigDict(from_attributes=True)
