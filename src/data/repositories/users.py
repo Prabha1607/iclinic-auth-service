@@ -105,6 +105,28 @@ async def get_patient_by_id_repo(
 
     return patient
 
+async def get_user_by_id_repo(
+    db: AsyncSession, id: int, is_active: bool | None = None
+):
+    stmt = (
+        select(User)
+        .where(User.id == id)
+        .options(selectinload(User.patient_profile))
+    )
+
+    if is_active is not None:
+        stmt = stmt.where(User.is_active == is_active)
+
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
+        )
+
+    return user
+
 
 async def insert_user(db: AsyncSession, user_data: dict):
 

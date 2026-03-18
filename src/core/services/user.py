@@ -1,10 +1,9 @@
+import re
 from datetime import UTC, datetime
-
 from fastapi import HTTPException
 from sqlalchemy import UUID, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
 from src.config.hashing import get_password_hash
 from src.data.models.postgres.refresh_token import RefreshToken
 from src.data.models.postgres.role import Role
@@ -22,6 +21,7 @@ from src.data.repositories.users import (
     get_patient_by_id_repo,
     get_patients,
     get_providers_by_type_repo,
+    get_user_by_id_repo,
     insert_patient_profile,
     insert_provider_profile,
     insert_user,
@@ -32,7 +32,8 @@ from src.utils.to_uuid import to_uuid
 
 
 def is_email(value: str) -> bool:
-    return "@" in value
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    return bool(re.match(pattern, value))
 
 
 async def create_user(db: AsyncSession, user_data: UserCreate):
@@ -199,6 +200,12 @@ async def get_patient_by_id_service(
     db: AsyncSession, id: int, is_active: bool | None = None
 ):
     return await get_patient_by_id_repo(db=db, id=id, is_active=is_active)
+
+async def get_user_by_id_service(
+    db: AsyncSession, id: int, is_active: bool | None = None
+):
+    return await get_user_by_id_repo(db=db, id=id, is_active=is_active)
+
 
 
 async def update_user_service(db: AsyncSession, user_id: int, user_data: UserUpdate):

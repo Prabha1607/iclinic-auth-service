@@ -1,10 +1,9 @@
 import logging
-
+import traceback
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.api.rest.dependencies import get_db
 from src.config.hashing import verify_password
 from src.config.jwt_handler import (
@@ -93,19 +92,18 @@ async def login_user(
             key="access_token",
             value=access_token,
             httponly=True,
-            samesite="lax",
-            secure=False,
-            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            samesite="none",
+            secure=True,
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 6000,
         )
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            samesite="lax",
-            secure=False,
+            samesite="none" ,
+            secure=True,
             max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86000,
         )
-
         logger.info("User logged in", extra={"user_id": user.id})
         return {
             "message": "Authentication Successfull!!!",
@@ -116,8 +114,19 @@ async def login_user(
         raise
 
     except Exception as e:
-        logger.error("Login unexpected error", extra={"error": str(e)})
-        raise HTTPException(status_code=500, detail="Unexpected error occurred")
+        logger.error(
+            "Login unexpected error",
+            extra={
+                "identifier": user_data.identifier,
+                "error": str(e),
+                "traceback": traceback.format_exc(),
+            },
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)   # temporarily show actual error for debugging
+        )
 
 
 @router.get("/logout")
@@ -188,8 +197,8 @@ async def refresh_token(
             key="access_token",
             value=access_data[0],
             httponly=True,
-            samesite="lax",
-            secure=False,
+            samesite="none",        
+            secure=True,   
             max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
 

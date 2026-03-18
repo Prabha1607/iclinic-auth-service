@@ -17,13 +17,11 @@ from src.data.seeds.seed_users import seed_users
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    await init_db()
-
-    await seed_roles()  # users depend on roles
-    await seed_appointment_types()  # users depend on appointment types
-    await seed_users()  # now users can reference both
-    await seed_doctors()  # doctors likely reference users
-
+    # await init_db()
+    # await seed_roles()  # users depend on roles
+    # await seed_appointment_types()  # users depend on appointment types
+    # await seed_users()  # now users can reference both
+    # await seed_doctors()  # doctors likely reference users
     yield
 
 
