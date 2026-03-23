@@ -31,26 +31,19 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     try:
         await create_user(db, user_data)
-
         logger.info("User registered successfully", extra={"email": user_data.email})
-
         return {"message": "User registered successfully"}
 
     except IntegrityError:
         logger.warning("Duplicate email or phone", extra={"email": user_data.email})
-
-        raise HTTPException(
-            status_code=400, detail="Email or phone number already exists"
-        )
+        raise HTTPException(status_code=400, detail="Email or phone number already exists")
 
     except SQLAlchemyError as e:
         logger.error(f"Database error: {str(e)}")
-
         raise HTTPException(status_code=500, detail="Database error occurred")
 
     except Exception:
         logger.exception("Unexpected registration error")
-
         raise HTTPException(status_code=500, detail="Something went wrong")
 
 
@@ -63,7 +56,6 @@ async def login_user(
 ):
     try:
         user = await get_user(user_data.identifier, db)
-
         if not user or not verify_password(user_data.password, user.password):
             logger.warning(
                 "Login failed - invalid credentials",
@@ -74,7 +66,7 @@ async def login_user(
         payload = {
             "id": user.id,
             "email": user.email,
-            "name": user.first_name + " " + user.last_name,
+            "name": f"{user.first_name} {user.last_name}",
             "role_id": user.role_id,
             "phone_number": user.phone_no,
         }
@@ -92,22 +84,30 @@ async def login_user(
             key="access_token",
             value=access_token,
             httponly=True,
-            samesite="none",
             secure=True,
-            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 6000,
+            samesite="none",
+            path="/",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
+
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            samesite="none" ,
             secure=True,
-            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86000,
+            samesite="none",
+            path="/",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
         )
+
         logger.info("User logged in", extra={"user_id": user.id})
+
         return {
-            "message": "Authentication Successfull!!!",
+            "message": "Authentication Successful!",
             "access_token": access_token,
+            "refresh_token": refresh_token,
+            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            "refresh_max_age": settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
         }
 
     except HTTPException:
@@ -122,40 +122,31 @@ async def login_user(
                 "traceback": traceback.format_exc(),
             },
         )
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)   # temporarily show actual error for debugging
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/logout")
 async def logout(
-    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         refresh_token = request.cookies.get("refresh_token")
 
-        if not refresh_token:
-            raise HTTPException(status_code=400, detail="Refresh Token missing")
+        if refresh_token:
+            try:
+                payload = await verify_refresh_token(refresh_token)
+                if payload:
+                    await make_it_revoked(db=db, jti=payload.get("jti"))
+                    logger.info("User logged out", extra={"user_id": payload.get("id")})
+            except Exception:
+                logger.warning("Logout with invalid/expired refresh token")
 
-        payload = await verify_refresh_token(refresh_token)
+        response.delete_cookie(key="access_token", path="/", secure=True, samesite="none")
+        response.delete_cookie(key="refresh_token", path="/", secure=True, samesite="none")
 
-        if payload is None:
-            raise HTTPException(
-                status_code=400, detail="Invalid or expired refresh token"
-            )
-
-        await make_it_revoked(db=db, jti=payload.get("jti"))
-
-        response.delete_cookie("refresh_token")
-        response.delete_cookie("access_token")
-
-        logger.info("User logged out", extra={"user_id": payload.get("id")})
         return {"message": "Logout successful"}
-
-    except HTTPException:
-        raise
 
     except Exception as e:
         logger.error("Logout failed", extra={"error": str(e)})
@@ -164,45 +155,76 @@ async def logout(
 
 @router.post("/refresh")
 async def refresh_token(
-    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
 ):
     try:
-        refresh_token = request.cookies.get("refresh_token")
+        refresh_token_cookie = request.cookies.get("refresh_token")
 
-        if not refresh_token:
+        if not refresh_token_cookie:
             raise HTTPException(status_code=401, detail="Refresh token missing")
 
-        payload = await verify_refresh_token(refresh_token)
+        payload = await verify_refresh_token(refresh_token_cookie)
 
         if payload is None:
             raise HTTPException(status_code=403, detail="Invalid refresh token")
 
-        if await is_revoked(jti=payload.get("jti"), db=db):
-            logger.warning(
-                "Revoked refresh token used", extra={"user_id": payload.get("id")}
-            )
+        jti = payload.get("jti")
+
+        if await is_revoked(jti=jti, db=db):
+            logger.warning("Revoked refresh token used", extra={"user_id": payload.get("id")})
             raise HTTPException(status_code=403, detail="Refresh token revoked")
 
+        await make_it_revoked(db=db, jti=jti)
+
         token_data = {
-            "email": payload.get("email"),
             "id": payload.get("id"),
+            "email": payload.get("email"),
             "name": payload.get("name"),
             "phone_number": payload.get("phone_number"),
             "role_id": payload.get("role_id"),
         }
 
-        access_data = await create_access_token(token_data)
+        # ── Issue a brand-new access token ─────────────────────────────────────────
+        access_data = await create_access_token(payload=token_data)
+        new_access_token = access_data[0]
+
+        # ── Issue a brand-new refresh token (rotation keeps the session alive) ──────
+        new_refresh_data = await create_refresh_token(payload=token_data)
+        new_refresh_token = new_refresh_data[0]
+        new_refresh_token_id = new_refresh_data[1]
+
+        await insert_refresh_token(db, new_refresh_token_id)
 
         response.set_cookie(
             key="access_token",
-            value=access_data[0],
+            value=new_access_token,
             httponly=True,
-            samesite="none",        
-            secure=True,   
+            secure=True,
+            samesite="none",
+            path="/",
             max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
 
-        return {"access_token": access_data[0], "token_type": "bearer"}
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            path="/",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        )
+
+        logger.info("Access token refreshed (refresh token rotated)", extra={"user_id": payload.get("id")})
+
+        return {
+            "access_token": new_access_token,
+            "token_type": "bearer",
+            "refresh_token": refresh_token,
+            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        }
 
     except HTTPException:
         raise
@@ -214,13 +236,14 @@ async def refresh_token(
 
 @router.get("/verify")
 async def verify_tokens(
-    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         access_token = request.cookies.get("access_token")
         refresh_token_cookie = request.cookies.get("refresh_token")
 
-        # Access token still valid — return it directly so frontend can hydrate Redux
         if access_token:
             try:
                 payload = await verify_access_token(access_token)
@@ -232,11 +255,7 @@ async def verify_tokens(
                         "role_id": payload.get("role_id"),
                         "phone_number": payload.get("phone_number"),
                     }
-                    return {
-                        "valid": True,
-                        "access_token": access_token,
-                        "user": user,
-                    }
+                    return {"valid": True, "access_token": access_token, "user": user}
             except Exception:
                 pass
 
@@ -246,9 +265,7 @@ async def verify_tokens(
         payload = await verify_refresh_token(refresh_token_cookie)
 
         if payload is None:
-            raise HTTPException(
-                status_code=401, detail="Invalid or expired refresh token"
-            )
+            raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
         if await is_revoked(jti=payload.get("jti"), db=db):
             raise HTTPException(status_code=401, detail="Session revoked")
@@ -261,26 +278,28 @@ async def verify_tokens(
             "role_id": payload.get("role_id"),
         }
 
-        access_data = await create_access_token(token_data)
+        access_data = await create_access_token(payload=token_data)
         new_access_token = access_data[0]
 
-        logger.info(
-            "Silent token refresh on /verify", extra={"user_id": payload.get("id")}
+        response.set_cookie(
+            key="access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            path="/",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
 
-        return JSONResponse(
-            content={
-                "valid": True,
-                "access_token": new_access_token,
-                "user": token_data,
-            },
-            headers={
-                "Set-Cookie": (
-                    f"access_token={new_access_token}; Path=/; HttpOnly; SameSite=Lax; "
-                    f"Max-Age={settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60}"
-                )
-            },
-        )
+        logger.info("Silent token refresh on /verify", extra={"user_id": payload.get("id")})
+
+        return {
+            "valid": True,
+            "access_token": new_access_token,
+            "user": token_data,
+            "refresh_token": refresh_token,
+            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        }
 
     except HTTPException:
         raise
