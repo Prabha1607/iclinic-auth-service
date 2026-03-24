@@ -14,6 +14,17 @@ class Settings(BaseSettings):
     ACCESS_SECRET_KEY: str
     REFRESH_SECRET_KEY: str
 
+    EMAIL_USERNAME: str
+    EMAIL_PASSWORD: str
+    EMAIL_FROM: str
+    EMAIL_PORT: int
+    EMAIL_SERVER: str
+    EMAIL_STARTTLS: bool
+    EMAIL_SSL_TLS: bool
+    EMAIL_USE_CREDENTIALS: bool
+
+    FRONTEND_URL: str
+
     class Config:
         env_file = ".env"
 

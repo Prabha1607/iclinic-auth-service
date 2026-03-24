@@ -31,6 +31,10 @@ gcloud run services update $SERVICE_NAME \
   --port=8080 \
   --service-account gwx-cloudrun-sa-01@$PROJECT_ID.iam.gserviceaccount.com \
   --add-cloudsql-instances $CONN_NAME \
+  --min-instances=0 \
+  --max-instances=2 \
+  --min=0 \
+  --max=2 \
   --env-vars-file env.yaml
 
 echo "iclinic-auth-service deployed successfully!"
