@@ -12,6 +12,9 @@ RUN uv pip install --system .
 # Copy all source code
 COPY . .
 
+RUN groupadd -r appuser && useradd -r -g appuser appuser && chown -R appuser:appuser /app
+USER appuser
+
 # Expose a port (not strictly required by Cloud Run, but good practice)
 EXPOSE 8080
 

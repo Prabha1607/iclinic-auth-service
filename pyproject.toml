@@ -20,6 +20,18 @@ dependencies = [
     "python-multipart>=0.0.22",
     "sqlalchemy>=2.0.48",
     "uvicorn[standard]>=0.41.0",
+    "slowapi>=0.1.9",
+    "opentelemetry-api>=1.24.0",
+    "opentelemetry-sdk>=1.24.0",
+    "opentelemetry-instrumentation-fastapi>=0.45b0",
+    "prometheus-fastapi-instrumentator>=7.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy"
 ]
 
 [tool.ruff]
@@ -33,3 +45,8 @@ ignore = ["B904", "B008", "E501"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+disallow_untyped_defs = true

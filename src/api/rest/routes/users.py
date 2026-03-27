@@ -31,7 +31,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/get_roles")
+@router.get(
+    "/get_roles",
+    response_model=list[dict],
+    summary="Get User Roles",
+    description="Retrieves a list of all available user roles.",
+)
 async def get_all_roles(
     request: Request, response: Response, db: AsyncSession = Depends(get_db)
 ):
@@ -44,7 +49,12 @@ async def get_all_roles(
         raise HTTPException(status_code=500, detail="Failed to fetch roles")
 
 
-@router.get("/list", response_model=list[PatientFullResponse])
+@router.get(
+    "/list",
+    response_model=list[PatientFullResponse],
+    summary="List Patients",
+    description="Retrieves a paginated list of patients.",
+)
 async def get_patients(
     request: Request,
     response: Response,
@@ -68,7 +78,12 @@ async def get_patients(
         raise HTTPException(status_code=500, detail="Failed to fetch patients")
 
 
-@router.get("/providers", response_model=list[ProviderFullResponse])
+@router.get(
+    "/providers",
+    response_model=list[ProviderFullResponse],
+    summary="List Providers",
+    description="Retrieves a paginated list of providers.",
+)
 async def get_all_providers_paginated(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, le=100),
@@ -108,8 +123,8 @@ async def create_patient(patient: UserCreate, db: AsyncSession = Depends(get_db)
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Email or phone already exists")
     except Exception as e:
-        print("CREATE PATIENT ERROR:", e)
-        raise
+        logger.error("Failed to create patient", extra={"error": str(e)})
+        raise HTTPException(status_code=500, detail="Failed to create patient")
 
 
 @router.post("/providers/create", response_model=ProviderFullResponse)
@@ -122,8 +137,8 @@ async def create_provider(provider: ProviderCreate, db: AsyncSession = Depends(g
         raise HTTPException(status_code=400, detail="Email or phone already exists")
 
     except Exception as e:
-        print("CREATE PROVIDER ERROR:", e)
-        raise
+        logger.error("Failed to create provider", extra={"error": str(e)})
+        raise HTTPException(status_code=500, detail="Failed to create provider")
 
 
 @router.get("/providers/full", response_model=list[ProviderFullResponse])
@@ -146,5 +161,4 @@ async def update_user(
 
     except Exception as e:
         logger.error("Failed to update user", extra={"error": str(e)})
-        print("UPDATE USER ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred")

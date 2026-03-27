@@ -36,7 +36,7 @@ def is_email(value: str) -> bool:
     return bool(re.match(pattern, value))
 
 
-async def create_user(db: AsyncSession, user_data: UserCreate):
+async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
     try:
         hashed_password = get_password_hash(user_data.password)
         user_dict = user_data.model_dump(exclude={"patient_profile"})
@@ -56,7 +56,7 @@ async def create_user(db: AsyncSession, user_data: UserCreate):
         raise e
 
 
-async def create_provider_service(db: AsyncSession, provider_data: ProviderCreate):
+async def create_provider_service(db: AsyncSession, provider_data: ProviderCreate) -> User:
     try:
         hashed_password = get_password_hash(provider_data.password)
 
@@ -89,7 +89,7 @@ async def create_provider_service(db: AsyncSession, provider_data: ProviderCreat
         raise e
 
 
-async def get_user_by_email(email: str, db: AsyncSession):
+async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
     try:
         user = await get_instance_by_any(db=db, model=User, data={"email": email})
         return user
@@ -97,7 +97,7 @@ async def get_user_by_email(email: str, db: AsyncSession):
         raise Exception("Failed to fetch user by email")
 
 
-async def get_user_by_phone(phone_no: str, db: AsyncSession):
+async def get_user_by_phone(phone_no: str, db: AsyncSession) -> User | None:
     try:
         user = await get_instance_by_any(db=db, model=User, data={"phone_no": phone_no})
         return user
@@ -105,7 +105,7 @@ async def get_user_by_phone(phone_no: str, db: AsyncSession):
         raise Exception("Failed to fetch user by phone")
 
 
-async def get_user(identifier: str, db: AsyncSession):
+async def get_user(identifier: str, db: AsyncSession) -> User | None:
     try:
         if is_email(identifier):
             user = await get_user_by_email(identifier, db)
@@ -116,7 +116,7 @@ async def get_user(identifier: str, db: AsyncSession):
         raise Exception("Failed to fetch user")
 
 
-async def is_revoked(jti: UUID, db: AsyncSession):
+async def is_revoked(jti: UUID, db: AsyncSession) -> bool:
     try:
         refresh_token = await get_instance_by_any(
             model=RefreshToken, db=db, data={"token_id": jti}
@@ -134,7 +134,7 @@ async def is_revoked(jti: UUID, db: AsyncSession):
         raise Exception("Token validation failed")
 
 
-async def make_it_revoked(db: AsyncSession, jti: str):
+async def make_it_revoked(db: AsyncSession, jti: str) -> None:
     try:
         uuid_jti = to_uuid(jti)
         refresh_token = await get_instance_by_any(
@@ -152,7 +152,7 @@ async def make_it_revoked(db: AsyncSession, jti: str):
         raise Exception("Failed to revoke token")
 
 
-async def insert_refresh_token(db: AsyncSession, jti: str):
+async def insert_refresh_token(db: AsyncSession, jti: str) -> bool:
     try:
         uuid_jti = to_uuid(jti)
         await insert_instance(model=RefreshToken, db=db, **{"token_id": uuid_jti})
@@ -161,7 +161,7 @@ async def insert_refresh_token(db: AsyncSession, jti: str):
         raise Exception("Failed to insert refresh token")
 
 
-async def get_roles(db: AsyncSession):
+async def get_roles(db: AsyncSession) -> list[dict]:
     try:
         roles = await bulk_get_instance(model=Role, db=db)
         return [{"id": role.id, "name": role.role_name} for role in roles]
@@ -174,7 +174,7 @@ async def get_all_patients(
     page: int = 1,
     page_size: int = 10,
     is_active: bool | None = None,
-):
+) -> list[User]:
     result = await get_patients(
         db=db, page=page, page_size=page_size, is_active=is_active
     )
@@ -183,14 +183,14 @@ async def get_all_patients(
 
 async def get_providers(
     db: AsyncSession, page: int, page_size: int, is_active: bool | None
-):
+) -> list[User]:
     providers = await get_all_providers(db, page, page_size, is_active)
     return providers
 
 
 async def get_providers_by_type_service(
     db: AsyncSession, appointment_type_id: int, is_active: bool | None = None
-):
+) -> list[User]:
     return await get_providers_by_type_repo(
         db=db, appointment_type_id=appointment_type_id, is_active=is_active
     )
@@ -198,17 +198,17 @@ async def get_providers_by_type_service(
 
 async def get_patient_by_id_service(
     db: AsyncSession, id: int, is_active: bool | None = None
-):
+) -> User | None:
     return await get_patient_by_id_repo(db=db, id=id, is_active=is_active)
 
 async def get_user_by_id_service(
     db: AsyncSession, id: int, is_active: bool | None = None
-):
+) -> User | None:
     return await get_user_by_id_repo(db=db, id=id, is_active=is_active)
 
 
 
-async def update_user_service(db: AsyncSession, user_id: int, user_data: UserUpdate):
+async def update_user_service(db: AsyncSession, user_id: int, user_data: UserUpdate) -> User:
     data = user_data.model_dump(exclude_unset=True)
 
     profile_data = None
@@ -227,7 +227,7 @@ async def update_user_service(db: AsyncSession, user_id: int, user_data: UserUpd
     )
 
 
-async def get_all_providers_service(db: AsyncSession, is_active: bool | None = None):
+async def get_all_providers_service(db: AsyncSession, is_active: bool | None = None) -> list[User]:
     providers = await get_all_providers_repo(db=db, is_active=is_active)
 
     return providers
