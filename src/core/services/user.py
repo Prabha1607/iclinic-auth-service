@@ -42,7 +42,10 @@ def is_email(value: str) -> bool:
 
 
 async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
+<<<<<<< HEAD
     logger.info("Creating user", extra={"email": user_data.email})
+=======
+>>>>>>> feature/coding-standard
     try:
         hashed_password = get_password_hash(user_data.password)
         user_dict = user_data.model_dump(exclude={"patient_profile"})
@@ -66,7 +69,10 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
 
 
 async def create_provider_service(db: AsyncSession, provider_data: ProviderCreate) -> User:
+<<<<<<< HEAD
     logger.info("Creating provider", extra={"email": provider_data.email})
+=======
+>>>>>>> feature/coding-standard
     try:
         hashed_password = get_password_hash(provider_data.password)
         user_dict = provider_data.model_dump(exclude={"provider_profile", "patient_profile"})
@@ -102,7 +108,10 @@ async def create_provider_service(db: AsyncSession, provider_data: ProviderCreat
 
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
+<<<<<<< HEAD
     logger.info("Fetching user by email", extra={"email": email})
+=======
+>>>>>>> feature/coding-standard
     try:
         user = await get_instance_by_any(db=db, model=User, data={"email": email})
         if not user:
@@ -114,7 +123,10 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
 
 
 async def get_user_by_phone(phone_no: str, db: AsyncSession) -> User | None:
+<<<<<<< HEAD
     logger.info("Fetching user by phone", extra={"phone_no": phone_no})
+=======
+>>>>>>> feature/coding-standard
     try:
         user = await get_instance_by_any(db=db, model=User, data={"phone_no": phone_no})
         if not user:
@@ -129,7 +141,10 @@ async def get_user_by_phone(phone_no: str, db: AsyncSession) -> User | None:
 
 
 async def get_user(identifier: str, db: AsyncSession) -> User | None:
+<<<<<<< HEAD
     logger.info("Resolving user by identifier", extra={"identifier": identifier})
+=======
+>>>>>>> feature/coding-standard
     try:
         if is_email(identifier):
             user = await get_user_by_email(identifier, db)
@@ -145,7 +160,10 @@ async def get_user(identifier: str, db: AsyncSession) -> User | None:
 
 
 async def is_revoked(jti: UUID, db: AsyncSession) -> bool:
+<<<<<<< HEAD
     logger.info("Checking token revocation status", extra={"jti": str(jti)})
+=======
+>>>>>>> feature/coding-standard
     try:
         refresh_token = await get_instance_by_any(
             model=RefreshToken, db=db, data={"token_id": jti}
@@ -176,7 +194,10 @@ async def is_revoked(jti: UUID, db: AsyncSession) -> bool:
 
 
 async def make_it_revoked(db: AsyncSession, jti: str) -> None:
+<<<<<<< HEAD
     logger.info("Revoking refresh token", extra={"jti": jti})
+=======
+>>>>>>> feature/coding-standard
     try:
         uuid_jti = to_uuid(jti)
         refresh_token = await get_instance_by_any(
@@ -205,7 +226,10 @@ async def make_it_revoked(db: AsyncSession, jti: str) -> None:
 
 
 async def insert_refresh_token(db: AsyncSession, jti: str) -> bool:
+<<<<<<< HEAD
     logger.info("Inserting refresh token", extra={"jti": jti})
+=======
+>>>>>>> feature/coding-standard
     try:
         uuid_jti = to_uuid(jti)
         await insert_instance(model=RefreshToken, db=db, **{"token_id": uuid_jti})
@@ -220,6 +244,7 @@ async def insert_refresh_token(db: AsyncSession, jti: str) -> bool:
 
 
 async def get_roles(db: AsyncSession) -> list[dict]:
+<<<<<<< HEAD
     logger.info("Fetching all roles")
     try:
         roles = await bulk_get_instance(model=Role, db=db)
@@ -229,6 +254,13 @@ async def get_roles(db: AsyncSession) -> list[dict]:
     except Exception as e:
         logger.error("Failed to fetch roles", extra={"error": str(e)})
         raise
+=======
+    try:
+        roles = await bulk_get_instance(model=Role, db=db)
+        return roles
+    except Exception:
+        raise Exception("Failed to fetch roles")
+>>>>>>> feature/coding-standard
 
 
 async def get_all_patients(
@@ -236,10 +268,16 @@ async def get_all_patients(
     page: int = 1,
     page_size: int = 10,
     is_active: bool | None = None,
+<<<<<<< HEAD
 ) -> list:
     logger.info(
         "Fetching all patients",
         extra={"page": page, "page_size": page_size, "is_active": is_active},
+=======
+) -> list[User]:
+    result = await get_patients(
+        db=db, page=page, page_size=page_size, is_active=is_active
+>>>>>>> feature/coding-standard
     )
     try:
         result = await get_patients(db=db, page=page, page_size=page_size, is_active=is_active)
@@ -255,6 +293,7 @@ async def get_all_patients(
 
 async def get_providers(
     db: AsyncSession, page: int, page_size: int, is_active: bool | None
+<<<<<<< HEAD
 ) -> list:
     logger.info(
         "Fetching paginated providers",
@@ -270,14 +309,25 @@ async def get_providers(
     except Exception as e:
         logger.error("Failed to fetch paginated providers", extra={"error": str(e)})
         raise
+=======
+) -> list[User]:
+    providers = await get_all_providers(db, page, page_size, is_active)
+    return providers
+>>>>>>> feature/coding-standard
 
 
 async def get_providers_by_type_service(
     db: AsyncSession, appointment_type_id: int, is_active: bool | None = None
+<<<<<<< HEAD
 ) -> list:
     logger.info(
         "Fetching providers by appointment type",
         extra={"appointment_type_id": appointment_type_id, "is_active": is_active},
+=======
+) -> list[User]:
+    return await get_providers_by_type_repo(
+        db=db, appointment_type_id=appointment_type_id, is_active=is_active
+>>>>>>> feature/coding-standard
     )
     try:
         providers = await get_providers_by_type_repo(
@@ -298,6 +348,7 @@ async def get_providers_by_type_service(
 
 async def get_patient_by_id_service(
     db: AsyncSession, id: int, is_active: bool | None = None
+<<<<<<< HEAD
 ):
     logger.info("Fetching patient by ID", extra={"patient_id": id, "is_active": is_active})
     try:
@@ -332,6 +383,15 @@ async def get_user_by_id_service(
             extra={"user_id": id, "error": str(e)},
         )
         raise
+=======
+) -> User | None:
+    return await get_patient_by_id_repo(db=db, id=id, is_active=is_active)
+
+async def get_user_by_id_service(
+    db: AsyncSession, id: int, is_active: bool | None = None
+) -> User | None:
+    return await get_user_by_id_repo(db=db, id=id, is_active=is_active)
+>>>>>>> feature/coding-standard
 
 
 async def update_user_service(
@@ -341,11 +401,16 @@ async def update_user_service(
     try:
         data = user_data.model_dump(exclude_unset=True)
 
+<<<<<<< HEAD
         profile_data = None
         if user_data.patient_profile is not None:
             profile_data = user_data.patient_profile.model_dump(exclude_unset=True)
             if not profile_data:
                 profile_data = None
+=======
+async def update_user_service(db: AsyncSession, user_id: int, user_data: UserUpdate) -> User:
+    data = user_data.model_dump(exclude_unset=True)
+>>>>>>> feature/coding-standard
 
         data.pop("patient_profile", None)
 
@@ -365,6 +430,7 @@ async def update_user_service(
         raise
 
 
+<<<<<<< HEAD
 async def get_all_providers_service(
     db: AsyncSession, is_active: bool | None = None
 ) -> list:
@@ -379,3 +445,9 @@ async def get_all_providers_service(
     except Exception as e:
         logger.error("Failed to fetch all providers", extra={"error": str(e)})
         raise
+=======
+async def get_all_providers_service(db: AsyncSession, is_active: bool | None = None) -> list[User]:
+    providers = await get_all_providers_repo(db=db, is_active=is_active)
+
+    return providers
+>>>>>>> feature/coding-standard

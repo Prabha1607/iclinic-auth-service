@@ -330,7 +330,12 @@ async def update_user_with_profile_repo(
             .options(selectinload(User.patient_profile))
         )
         result = await db.execute(stmt)
+<<<<<<< HEAD
         updated_user = result.scalar_one()
+=======
+        
+        return result.scalar_one()
+>>>>>>> feature/coding-standard
 
         logger.info("User updated and refetched successfully", extra={"user_id": user_id})
         return updated_user

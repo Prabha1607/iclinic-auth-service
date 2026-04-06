@@ -8,4 +8,8 @@ class SendOtpRequest(BaseModel):
 
 class VerifyOtpRequest(BaseModel):
     email: EmailStr
+<<<<<<< HEAD
     otp: str
+=======
+    otp: str
+>>>>>>> feature/coding-standard

@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from src.schemas.roles import RoleResponse
 from src.api.rest.dependencies import get_db
 from src.core.services.user import (
     create_provider_service,
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+<<<<<<< HEAD
 @router.get("/get_roles")
 async def get_all_roles(db: AsyncSession = Depends(get_db)):
     """
@@ -53,6 +54,19 @@ async def get_all_roles(db: AsyncSession = Depends(get_db)):
         result = await get_roles(db=db)
         logger.info("Roles fetched successfully", extra={"count": len(result)})
         return result
+=======
+@router.get(
+    "/get_roles",
+    response_model=list[RoleResponse],
+    summary="Get User Roles",
+    description="Retrieves a list of all available user roles.",
+)
+async def get_all_roles(
+    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+):
+    try:
+        return await get_roles(db=db)
+>>>>>>> feature/coding-standard
     except Exception as e:
         logger.error("Failed to fetch roles", extra={"error": str(e)})
         raise HTTPException(
@@ -61,7 +75,12 @@ async def get_all_roles(db: AsyncSession = Depends(get_db)):
         )
 
 
-@router.get("/list", response_model=list[PatientFullResponse])
+@router.get(
+    "/list",
+    response_model=list[PatientFullResponse],
+    summary="List Patients",
+    description="Retrieves a paginated list of patients.",
+)
 async def get_patients(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, le=100),
@@ -193,7 +212,12 @@ async def get_all_providers(db: AsyncSession = Depends(get_db)):
         )
 
 
-@router.get("/providers", response_model=list[ProviderFullResponse])
+@router.get(
+    "/providers",
+    response_model=list[ProviderFullResponse],
+    summary="List Providers",
+    description="Retrieves a paginated list of providers.",
+)
 async def get_all_providers_paginated(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, le=100),
@@ -352,6 +376,7 @@ async def create_patient(patient: UserCreate, db: AsyncSession = Depends(get_db)
             detail="Email or phone already exists",
         )
     except Exception as e:
+<<<<<<< HEAD
         logger.error(
             "Failed to create patient",
             extra={"email": patient.email, "error": str(e)},
@@ -360,6 +385,10 @@ async def create_patient(patient: UserCreate, db: AsyncSession = Depends(get_db)
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create patient",
         )
+=======
+        logger.error("Failed to create patient", extra={"error": str(e)})
+        raise HTTPException(status_code=500, detail="Failed to create patient")
+>>>>>>> feature/coding-standard
 
 
 @router.post("/providers/create", response_model=ProviderFullResponse, status_code=status.HTTP_201_CREATED)
@@ -402,6 +431,7 @@ async def create_provider(provider: ProviderCreate, db: AsyncSession = Depends(g
             detail="Email or phone already exists",
         )
     except Exception as e:
+<<<<<<< HEAD
         logger.error(
             "Failed to create provider",
             extra={"email": provider.email, "error": str(e)},
@@ -410,6 +440,17 @@ async def create_provider(provider: ProviderCreate, db: AsyncSession = Depends(g
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create provider",
         )
+=======
+        logger.error("Failed to create provider", extra={"error": str(e)})
+        raise HTTPException(status_code=500, detail="Failed to create provider")
+
+
+@router.get("/providers/full", response_model=list[ProviderFullResponse])
+async def get_all_providers(db: AsyncSession = Depends(get_db)):
+    providers = await get_all_providers_service(db=db, is_active=True)
+
+    return providers
+>>>>>>> feature/coding-standard
 
 
 @router.put("/update/{user_id}", response_model=PatientFullResponse)
@@ -456,6 +497,7 @@ async def update_user(
     except HTTPException:
         raise
     except Exception as e:
+<<<<<<< HEAD
         logger.error(
             "Failed to update user",
             extra={"user_id": user_id, "error": str(e)},
@@ -464,3 +506,7 @@ async def update_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user",
         )
+=======
+        logger.error("Failed to update user", extra={"error": str(e)})
+        raise HTTPException(status_code=500, detail="An internal server error occurred")
+>>>>>>> feature/coding-standard

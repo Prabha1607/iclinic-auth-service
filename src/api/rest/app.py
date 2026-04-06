@@ -12,7 +12,13 @@ from src.data.seeds.seed_appointment_types import seed_appointment_types
 from src.data.seeds.seed_doctors import seed_doctors
 from src.data.seeds.seed_roles import seed_roles
 from src.data.seeds.seed_users import seed_users
-
+from src.core.exceptions.base import AppError
+from src.config.rate_limit import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,3 +44,16 @@ api_router.include_router(router=users.router)
 api_router.include_router(router=health.router)
 api_router.include_router(router=internal.router)
 app.include_router(router=api_router)
+
+@app.exception_handler(AppError)
+async def app_error_handler(request, exc: AppError):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+Instrumentator().instrument(app).expose(app)
+try:
+    FastAPIInstrumentor.instrument_app(app)
+except Exception:
+    pass

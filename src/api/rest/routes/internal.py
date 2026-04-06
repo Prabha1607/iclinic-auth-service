@@ -1,21 +1,27 @@
+<<<<<<< HEAD
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+=======
+from fastapi import APIRouter, Depends, HTTPException, Query
+from src.schemas.user import UserResponse
+>>>>>>> feature/coding-standard
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.api.rest.dependencies import get_db
 from src.core.services.user import get_user
+import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/internal", tags=["Internal"])
 
 
-@router.get("/users/by-identifier")
+@router.get("/users/by-identifier", response_model=UserResponse)
 async def get_user_by_identifier(
     identifier: str = Query(..., description="Email or phone number"),
     db: AsyncSession = Depends(get_db),
 ):
+<<<<<<< HEAD
     """
     Retrieve a user record by email address or phone number.
 
@@ -42,10 +48,13 @@ async def get_user_by_identifier(
         HTTPException 500: When an unexpected error occurs during lookup.
     """
     logger.info("Internal user lookup requested", extra={"identifier": identifier})
+=======
+>>>>>>> feature/coding-standard
     try:
         user = await get_user(identifier, db)
 
         if not user:
+<<<<<<< HEAD
             logger.warning(
                 "User not found for identifier",
                 extra={"identifier": identifier},
@@ -79,3 +88,13 @@ async def get_user_by_identifier(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal lookup failed",
         )
+=======
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Internal user lookup failed", extra={"error": str(e)})
+        raise HTTPException(status_code=500, detail="Internal lookup failed")
+
+>>>>>>> feature/coding-standard
