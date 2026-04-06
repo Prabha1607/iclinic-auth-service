@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from src.schemas.roles import RoleResponse
 from src.api.rest.dependencies import get_db
 from src.core.services.user import (
     create_provider_service,
@@ -33,7 +33,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.get(
     "/get_roles",
-    response_model=list[dict],
+    response_model=list[RoleResponse],
     summary="Get User Roles",
     description="Retrieves a list of all available user roles.",
 )
@@ -41,9 +41,7 @@ async def get_all_roles(
     request: Request, response: Response, db: AsyncSession = Depends(get_db)
 ):
     try:
-        result = await get_roles(db=db)
-        return result
-
+        return await get_roles(db=db)
     except Exception as e:
         logger.error("Failed to fetch roles", extra={"error": str(e)})
         raise HTTPException(status_code=500, detail="Failed to fetch roles")

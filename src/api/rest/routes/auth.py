@@ -22,6 +22,7 @@ from src.core.services.user import (
     is_revoked,
     make_it_revoked,
 )
+from src.schemas.auth import LoginResponse, TokenRefreshResponse, UserPayload, VerifyTokenResponse
 from src.schemas.user import UserCreate, UserLogin
 
 logger = logging.getLogger(__name__)
@@ -165,7 +166,7 @@ async def register_user(
         )
 
 
-@router.post("/login", status_code=status.HTTP_200_OK)
+@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def login_user(
     request: Request,
     response: Response,
@@ -242,13 +243,14 @@ async def login_user(
         )
 
         logger.info("User logged in successfully", extra={"user_id": user.id})
-        return {
-            "message": "Authentication Successful!",
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            "refresh_max_age": settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
-        }
+        return LoginResponse(
+            message="Authentication Successful!",
+            access_token=access_token,
+            refresh_token=refresh_token,
+            access_max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            refresh_max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        )
+
     except HTTPException:
         raise
     except Exception as e:
@@ -320,7 +322,7 @@ async def logout(
         )
 
 
-@router.post("/refresh", status_code=status.HTTP_200_OK)
+@router.post("/refresh", response_model=TokenRefreshResponse, status_code=status.HTTP_200_OK)
 async def refresh_token(
     request: Request,
     response: Response,
@@ -417,12 +419,11 @@ async def refresh_token(
             "Token rotation completed successfully",
             extra={"user_id": payload.get("id")},
         )
-        return {
-            "access_token": new_access_token,
-            "token_type": "bearer",
-            "refresh_token": new_refresh_token,
-            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        }
+        return TokenRefreshResponse(
+            access_token=new_access_token,
+            refresh_token=new_refresh_token,
+            access_max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -433,7 +434,7 @@ async def refresh_token(
         )
 
 
-@router.get("/verify", status_code=status.HTTP_200_OK)
+@router.get("/verify", response_model=VerifyTokenResponse, status_code=status.HTTP_200_OK)
 async def verify_tokens(
     request: Request,
     response: Response,
@@ -475,17 +476,17 @@ async def verify_tokens(
                         "Access token verified successfully",
                         extra={"user_id": payload.get("id")},
                     )
-                    return {
-                        "valid": True,
-                        "access_token": access_token,
-                        "user": {
+                    return VerifyTokenResponse(
+                        valid=True,
+                        access_token=access_token,
+                        user=UserPayload(**{
                             "id": payload.get("id"),
                             "email": payload.get("email"),
                             "name": payload.get("name"),
                             "role_id": payload.get("role_id"),
                             "phone_number": payload.get("phone_number"),
-                        },
-                    }
+                        }),
+                    )
             except Exception as e:
                 logger.warning(
                     "Access token invalid — falling back to refresh token",
@@ -541,12 +542,12 @@ async def verify_tokens(
             "Silent access token refresh completed on verify",
             extra={"user_id": payload.get("id")},
         )
-        return {
-            "valid": True,
-            "access_token": new_access_token,
-            "user": token_data,
-            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        }
+        return VerifyTokenResponse(
+            valid=True,
+            access_token=new_access_token,
+            user=UserPayload(**token_data),
+            access_max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -555,3 +556,5 @@ async def verify_tokens(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Verification failed",
         )
+    
+

@@ -164,7 +164,7 @@ async def insert_refresh_token(db: AsyncSession, jti: str) -> bool:
 async def get_roles(db: AsyncSession) -> list[dict]:
     try:
         roles = await bulk_get_instance(model=Role, db=db)
-        return [{"id": role.id, "name": role.role_name} for role in roles]
+        return roles
     except Exception:
         raise Exception("Failed to fetch roles")
 

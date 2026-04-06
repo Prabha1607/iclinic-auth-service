@@ -195,6 +195,7 @@ async def update_user_with_profile_repo(
             .options(selectinload(User.patient_profile))
         )
         result = await db.execute(stmt)
+        
         return result.scalar_one()
 
     except Exception:
