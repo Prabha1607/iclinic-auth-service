@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.schemas.otp import SendOtpRequest,VerifyOtpRequest
+
 from src.api.rest.dependencies import get_db
 from src.config.hashing import verify_password
 from src.config.jwt_handler import (
@@ -23,11 +23,13 @@ from src.core.services.user import (
     make_it_revoked,
 )
 from src.schemas.auth import LoginResponse, TokenRefreshResponse, UserPayload, VerifyTokenResponse
+from src.schemas.otp import SendOtpRequest, VerifyOtpRequest
 from src.schemas.user import UserCreate, UserLogin
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
 
 @router.post("/send-otp", status_code=status.HTTP_200_OK)
 async def send_otp(body: SendOtpRequest, background_tasks: BackgroundTasks):
@@ -166,11 +168,7 @@ async def register_user(
         )
 
 
-<<<<<<< HEAD
-@router.post("/login", status_code=status.HTTP_200_OK)
-=======
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
->>>>>>> feature/coding-standard
 async def login_user(
     request: Request,
     response: Response,
@@ -193,8 +191,8 @@ async def login_user(
         db:        Async database session injected by ``get_db``.
 
     Returns:
-        dict: Authentication result containing ``access_token``, ``refresh_token``,
-              and their respective ``max_age`` values in seconds.
+        LoginResponse: Authentication result containing ``access_token``,
+                       ``refresh_token``, and their respective ``max_age`` values.
 
     Raises:
         HTTPException 401: When the identifier is not found or the password is incorrect.
@@ -244,8 +242,6 @@ async def login_user(
             samesite="none",
             path="/",
             max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
-<<<<<<< HEAD
-=======
         )
 
         logger.info("User logged in successfully", extra={"user_id": user.id})
@@ -255,17 +251,7 @@ async def login_user(
             refresh_token=refresh_token,
             access_max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             refresh_max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
->>>>>>> feature/coding-standard
         )
-
-        logger.info("User logged in successfully", extra={"user_id": user.id})
-        return {
-            "message": "Authentication Successful!",
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            "refresh_max_age": settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
-        }
     except HTTPException:
         raise
     except Exception as e:
@@ -337,11 +323,7 @@ async def logout(
         )
 
 
-<<<<<<< HEAD
-@router.post("/refresh", status_code=status.HTTP_200_OK)
-=======
 @router.post("/refresh", response_model=TokenRefreshResponse, status_code=status.HTTP_200_OK)
->>>>>>> feature/coding-standard
 async def refresh_token(
     request: Request,
     response: Response,
@@ -361,8 +343,8 @@ async def refresh_token(
         db:       Async database session injected by ``get_db``.
 
     Returns:
-        dict: New ``access_token``, ``refresh_token``, ``token_type``, and
-              ``access_max_age`` in seconds.
+        TokenRefreshResponse: New ``access_token``, ``refresh_token``, and
+                              ``access_max_age`` in seconds.
 
     Raises:
         HTTPException 401: When the refresh token cookie is missing.
@@ -438,20 +420,11 @@ async def refresh_token(
             "Token rotation completed successfully",
             extra={"user_id": payload.get("id")},
         )
-<<<<<<< HEAD
-        return {
-            "access_token": new_access_token,
-            "token_type": "bearer",
-            "refresh_token": new_refresh_token,
-            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        }
-=======
         return TokenRefreshResponse(
             access_token=new_access_token,
             refresh_token=new_refresh_token,
             access_max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
->>>>>>> feature/coding-standard
     except HTTPException:
         raise
     except Exception as e:
@@ -462,11 +435,7 @@ async def refresh_token(
         )
 
 
-<<<<<<< HEAD
-@router.get("/verify", status_code=status.HTTP_200_OK)
-=======
 @router.get("/verify", response_model=VerifyTokenResponse, status_code=status.HTTP_200_OK)
->>>>>>> feature/coding-standard
 async def verify_tokens(
     request: Request,
     response: Response,
@@ -488,9 +457,8 @@ async def verify_tokens(
         db:       Async database session injected by ``get_db``.
 
     Returns:
-        dict: ``{"valid": True, "access_token": <token>, "user": <payload>}``
-              with an optional ``access_max_age`` field when the token was silently
-              refreshed.
+        VerifyTokenResponse: ``valid``, ``access_token``, ``user`` payload, and an
+                             optional ``access_max_age`` when the token was silently refreshed.
 
     Raises:
         HTTPException 401: When both tokens are missing, invalid, expired, or revoked.
@@ -508,29 +476,17 @@ async def verify_tokens(
                         "Access token verified successfully",
                         extra={"user_id": payload.get("id")},
                     )
-<<<<<<< HEAD
-                    return {
-                        "valid": True,
-                        "access_token": access_token,
-                        "user": {
-=======
                     return VerifyTokenResponse(
                         valid=True,
                         access_token=access_token,
-                        user=UserPayload(**{
->>>>>>> feature/coding-standard
-                            "id": payload.get("id"),
-                            "email": payload.get("email"),
-                            "name": payload.get("name"),
-                            "role_id": payload.get("role_id"),
-                            "phone_number": payload.get("phone_number"),
-<<<<<<< HEAD
-                        },
-                    }
-=======
-                        }),
+                        user=UserPayload(
+                            id=payload.get("id"),
+                            email=payload.get("email"),
+                            name=payload.get("name"),
+                            role_id=payload.get("role_id"),
+                            phone_number=payload.get("phone_number"),
+                        ),
                     )
->>>>>>> feature/coding-standard
             except Exception as e:
                 logger.warning(
                     "Access token invalid — falling back to refresh token",
@@ -586,21 +542,18 @@ async def verify_tokens(
             "Silent access token refresh completed on verify",
             extra={"user_id": payload.get("id")},
         )
-<<<<<<< HEAD
-        return {
-            "valid": True,
-            "access_token": new_access_token,
-            "user": token_data,
-            "access_max_age": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        }
-=======
         return VerifyTokenResponse(
             valid=True,
             access_token=new_access_token,
-            user=UserPayload(**token_data),
+            user=UserPayload(
+                id=token_data["id"],
+                email=token_data["email"],
+                name=token_data["name"],
+                role_id=token_data["role_id"],
+                phone_number=token_data["phone_number"],
+            ),
             access_max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
->>>>>>> feature/coding-standard
     except HTTPException:
         raise
     except Exception as e:
@@ -608,10 +561,4 @@ async def verify_tokens(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Verification failed",
-<<<<<<< HEAD
         )
-=======
-        )
-    
-
->>>>>>> feature/coding-standard

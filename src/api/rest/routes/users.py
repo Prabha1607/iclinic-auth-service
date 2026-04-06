@@ -31,8 +31,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-<<<<<<< HEAD
-@router.get("/get_roles")
+
+@router.get(
+    "/get_roles",
+    response_model=list[RoleResponse],
+    summary="Get User Roles",
+    description="Retrieves a list of all available user roles.",
+)
 async def get_all_roles(db: AsyncSession = Depends(get_db)):
     """
     Retrieve all available user roles.
@@ -44,7 +49,7 @@ async def get_all_roles(db: AsyncSession = Depends(get_db)):
         db: Async database session injected by ``get_db``.
 
     Returns:
-        list: All role records available in the system.
+        list[RoleResponse]: All role records available in the system.
 
     Raises:
         HTTPException 500: When an unexpected error occurs during retrieval.
@@ -54,26 +59,13 @@ async def get_all_roles(db: AsyncSession = Depends(get_db)):
         result = await get_roles(db=db)
         logger.info("Roles fetched successfully", extra={"count": len(result)})
         return result
-=======
-@router.get(
-    "/get_roles",
-    response_model=list[RoleResponse],
-    summary="Get User Roles",
-    description="Retrieves a list of all available user roles.",
-)
-async def get_all_roles(
-    request: Request, response: Response, db: AsyncSession = Depends(get_db)
-):
-    try:
-        return await get_roles(db=db)
->>>>>>> feature/coding-standard
     except Exception as e:
         logger.error("Failed to fetch roles", extra={"error": str(e)})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch roles",
         )
-
+    
 
 @router.get(
     "/list",
@@ -376,7 +368,6 @@ async def create_patient(patient: UserCreate, db: AsyncSession = Depends(get_db)
             detail="Email or phone already exists",
         )
     except Exception as e:
-<<<<<<< HEAD
         logger.error(
             "Failed to create patient",
             extra={"email": patient.email, "error": str(e)},
@@ -385,33 +376,15 @@ async def create_patient(patient: UserCreate, db: AsyncSession = Depends(get_db)
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create patient",
         )
-=======
-        logger.error("Failed to create patient", extra={"error": str(e)})
-        raise HTTPException(status_code=500, detail="Failed to create patient")
->>>>>>> feature/coding-standard
-
-
-@router.post("/providers/create", response_model=ProviderFullResponse, status_code=status.HTTP_201_CREATED)
+    
+@router.post(
+    "/providers/create",
+    response_model=ProviderFullResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_provider(provider: ProviderCreate, db: AsyncSession = Depends(get_db)):
     """
     Create a new provider account.
-
-    Persists a new provider record along with their associated profile details.
-    Enforces uniqueness on email address and phone number at the database level.
-
-    Args:
-        provider: Provider creation payload containing personal, contact, and
-                  profile details such as specialization and qualifications.
-        db:       Async database session injected by ``get_db``.
-
-    Returns:
-        ProviderFullResponse: The newly created provider record including
-        the associated provider profile and generated fields.
-
-    Raises:
-        HTTPException 400: When the email address or phone number is already
-                           registered to an existing account.
-        HTTPException 500: When an unexpected error occurs during creation.
     """
     logger.info("Create provider requested", extra={"email": provider.email})
     try:
@@ -421,6 +394,7 @@ async def create_provider(provider: ProviderCreate, db: AsyncSession = Depends(g
             extra={"email": provider.email, "provider_id": created_provider.id},
         )
         return created_provider
+
     except IntegrityError:
         logger.warning(
             "Provider creation rejected — duplicate email or phone",
@@ -430,8 +404,8 @@ async def create_provider(provider: ProviderCreate, db: AsyncSession = Depends(g
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email or phone already exists",
         )
+
     except Exception as e:
-<<<<<<< HEAD
         logger.error(
             "Failed to create provider",
             extra={"email": provider.email, "error": str(e)},
@@ -440,18 +414,10 @@ async def create_provider(provider: ProviderCreate, db: AsyncSession = Depends(g
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create provider",
         )
-=======
-        logger.error("Failed to create provider", extra={"error": str(e)})
-        raise HTTPException(status_code=500, detail="Failed to create provider")
-
-
+    
 @router.get("/providers/full", response_model=list[ProviderFullResponse])
 async def get_all_providers(db: AsyncSession = Depends(get_db)):
-    providers = await get_all_providers_service(db=db, is_active=True)
-
-    return providers
->>>>>>> feature/coding-standard
-
+    return await get_all_providers_service(db=db, is_active=True)
 
 @router.put("/update/{user_id}", response_model=PatientFullResponse)
 async def update_user(
@@ -459,32 +425,12 @@ async def update_user(
     user_data: UserUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Update an existing user record by primary key.
-
-    Applies the supplied partial update payload to the user identified by
-    ``user_id``. Only fields present in the payload are modified.
-
-    Args:
-        user_id:   Primary key of the user to update.
-        user_data: Partial update payload with the fields to modify.
-        db:        Async database session injected by ``get_db``.
-
-    Returns:
-        PatientFullResponse: The updated user record reflecting the applied changes.
-
-    Raises:
-        HTTPException 400: When the updated email address is already registered
-                           to a different account.
-        HTTPException 404: When no user with the given ID exists
-                           (raised by the service layer).
-        HTTPException 500: When an unexpected error occurs during the update.
-    """
     logger.info("Update user requested", extra={"user_id": user_id})
     try:
         user = await update_user_service(db=db, user_id=user_id, user_data=user_data)
         logger.info("User updated successfully", extra={"user_id": user_id})
         return user
+
     except IntegrityError:
         logger.warning(
             "User update rejected — duplicate email",
@@ -494,10 +440,11 @@ async def update_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already exists",
         )
+
     except HTTPException:
         raise
+
     except Exception as e:
-<<<<<<< HEAD
         logger.error(
             "Failed to update user",
             extra={"user_id": user_id, "error": str(e)},
@@ -506,7 +453,5 @@ async def update_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user",
         )
-=======
-        logger.error("Failed to update user", extra={"error": str(e)})
-        raise HTTPException(status_code=500, detail="An internal server error occurred")
->>>>>>> feature/coding-standard
+    
+    

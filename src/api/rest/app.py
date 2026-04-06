@@ -7,11 +7,11 @@ from src.api.middleware.auth import AuthorizationMiddleware
 from src.api.middleware.cors import add_cors_middleware
 from src.api.middleware.logging import logging_middleware, setup_logging
 from src.api.rest.routes import auth, health, internal, users
-from src.data.clients.postgres_client import init_db
-from src.data.seeds.seed_appointment_types import seed_appointment_types
-from src.data.seeds.seed_doctors import seed_doctors
-from src.data.seeds.seed_roles import seed_roles
-from src.data.seeds.seed_users import seed_users
+# from src.data.clients.postgres_client import init_db
+# from src.data.seeds.seed_appointment_types import seed_appointment_types
+# from src.data.seeds.seed_doctors import seed_doctors
+# from src.data.seeds.seed_roles import seed_roles
+# from src.data.seeds.seed_users import seed_users
 from src.core.exceptions.base import AppError
 from src.config.rate_limit import limiter
 from slowapi.errors import RateLimitExceeded
